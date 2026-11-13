@@ -1,0 +1,16 @@
+ChatPanel.vue: reemplaza las instrucciones anteriores (el flag ahora vive en el store,
+porque lo abre también el asistente). El resto del archivo queda igual.
+
+1) En <script setup>, junto a los otros imports:
+
+import HistorialModal from './HistorialModal.vue'
+
+   (si ya habías agregado `const historialAbierto = ref(false)`, borralo)
+
+2) En el template, dentro de <div class="chat-header-actions">, antes del botón "Nueva conversación":
+
+<button class="btn btn-secondary" @click="chat.historialAbierto = true">📂 Trámites</button>
+
+3) En cualquier lugar del template (por ejemplo justo antes de <div ref="lista" class="messages">):
+
+<HistorialModal v-model:abierto="chat.historialAbierto" />

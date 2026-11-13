@@ -5,6 +5,7 @@ import { useChatStore } from '@/stores/chat'
 import { useEnviarMensaje } from '@/composables/useEnviarMensaje'
 import ChatMensaje from './ChatMensaje.vue'
 import type { OpcionActo } from '@/types/asistente'
+import HistorialModal from './HistorialModal.vue'
 
 const chat = useChatStore()
 
@@ -14,6 +15,7 @@ const inicio = useInicio()
 const { mutate: enviar, isLoading: enviando } = useEnviarMensaje()
 
 const texto = ref('')
+
 const input = ref<HTMLTextAreaElement>()
 const lista = ref<HTMLElement>()
 
@@ -106,10 +108,11 @@ watch(
       </div>
       <div class="chat-header-actions">
         <span v-if="chat.codigoTramite" class="tramite-actual">Trámite {{ chat.codigoTramite }}</span>
+        <button class="btn btn-secondary" @click="chat.historialAbierto = true">📂 Trámites</button>
         <button class="btn btn-secondary" @click="nuevaConversacion">🔄 Nueva conversación</button>
       </div>
     </div>
-
+    <HistorialModal v-model:abierto="chat.historialAbierto" />
     <div ref="lista" class="messages">
       <!-- Bienvenida -->
       <div v-if="inicio.isLoading.value" class="message assistant">

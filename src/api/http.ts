@@ -7,6 +7,11 @@ export class ApiError extends Error {
     this.status = status
     this.body = body
   }
+
+  /** Código de error del back (ej. 'ia_saturada'), si lo mandó. */
+  get codigo(): string | null {
+    return campo(this.body, 'codigo')
+  }
 }
 
 export async function http<T>(path: string, init?: RequestInit): Promise<T> {
@@ -25,11 +30,17 @@ export async function http<T>(path: string, init?: RequestInit): Promise<T> {
   const body = text ? safeJson(text) : null
 
   if (!res.ok) {
-    // ProblemDetails de ASP.NET trae "title"
-    const title = body && typeof body === 'object' && 'title' in body ? String(body.title) : null
-    throw new ApiError(res.status, body, title ?? `Error ${res.status} en ${path}`)
+    // ProblemDetails de ASP.NET trae "title"; nuestros errores, "error"
+    const mensaje = campo(body, 'title') ?? campo(body, 'error')
+    throw new ApiError(res.status, body, mensaje ?? `Error ${res.status} en ${path}`)
   }
   return body as T
+}
+
+function campo(body: unknown, nombre: string): string | null {
+  return body && typeof body === 'object' && nombre in body && (body as Record<string, unknown>)[nombre] != null
+    ? String((body as Record<string, unknown>)[nombre])
+    : null
 }
 
 function safeJson(text: string): unknown {

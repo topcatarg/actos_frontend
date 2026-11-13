@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import type { OpcionActo, RespuestaAsistente } from '@/types/asistente'
-import type { RespuestaTramite } from '@/types/tramite'
+import type { RespuestaTramite, TramiteDetalle } from '@/types/tramite'
 
 export type TipoMensaje = 'texto' | 'ayuda' | 'aclaracion' | 'no_disponible' | 'error'
 
@@ -25,6 +25,8 @@ export const useChatStore = defineStore('chat', () => {
   const tramite = ref<RespuestaTramite | null>(null)
   /** Código de la parte (paso) que se está viendo: 'otorgantes', 'facultades'... */
   const parteActiva = ref<string | null>(null)
+  /** Modal del historial de trámites: lo abre el botón del header o el asistente (respuesta "historial"). */
+  const historialAbierto = ref(false)
 
   let proximoId = 1
 
@@ -55,6 +57,11 @@ export const useChatStore = defineStore('chat', () => {
       acto.value = r.acto
       return
     }
+    if (r.tipo === 'historial') {
+      agregar({ rol: 'asistente', texto: r.mensaje, tipo: 'texto' })
+      historialAbierto.value = true
+      return
+    }
     agregar({
       rol: 'asistente',
       texto: r.mensaje,
@@ -70,6 +77,33 @@ export const useChatStore = defineStore('chat', () => {
     agregar({ rol: 'asistente', texto: r.mensaje, tipo: 'texto' })
   }
 
+  /**
+   * Retomar un trámite guardado (desde el historial): reemplaza la conversación actual por la guardada.
+   * Lo que se pierde es solo lo que no estaba en un trámite (ej. una aclaración sin responder):
+   * el trámite actual, si había, ya está en la base.
+   */
+  function cargarTramite(t: TramiteDetalle) {
+    const mismoActo = acto.value === t.tipoTramite
+
+    mensajes.value = t.mensajes.map((m) => ({ id: proximoId++, rol: m.rol, texto: m.texto, tipo: 'texto' as const }))
+    codigoTramite.value = t.codigoTramite
+    acto.value = t.tipoTramite
+
+    const ultimaRespuesta = [...t.mensajes].reverse().find((m) => m.rol === 'asistente')
+    tramite.value = {
+      codigoTramite: t.codigoTramite,
+      estadoTramite: t.estadoTramite,
+      mensaje: ultimaRespuesta?.texto ?? '',
+      estado: t.estado,
+      datos: t.datos,
+      detalle: null,
+    }
+
+    // Con otro acto, las pestañas cambian: el sidebar elige la primera cuando llegan.
+    // Con el mismo acto, la pestaña que se estaba viendo sigue valiendo.
+    if (!mismoActo) parteActiva.value = null
+  }
+
   function seleccionarParte(codigo: string) {
     parteActiva.value = codigo
   }
@@ -83,8 +117,8 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   return {
-    mensajes, codigoTramite, acto, tramite, parteActiva, hayTramite, ultimoMensaje,
+    mensajes, codigoTramite, acto, tramite, parteActiva, historialAbierto, hayTramite, ultimoMensaje,
     agregarUsuario, agregarError, mostrarAyuda, aplicarRespuestaAsistente, aplicarRespuestaTramite,
-    seleccionarParte, reset,
+    cargarTramite, seleccionarParte, reset,
   }
 })

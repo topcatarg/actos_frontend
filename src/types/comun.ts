@@ -40,6 +40,8 @@ export type InstanciaBloque = Record<string, Dato>
 export interface DatosActo {
   /** Datos de los bloques (inmueble, vehiculo...), por código de bloque. */
   bloques: Record<string, InstanciaBloque[]>
+  /** Objetos mencionados en el pedido aunque sin datos (valor = código de bloque). Activan su pestaña. */
+  objetos?: Dato[]
   /** Pestañas (códigos de actos_partes) que aplican a este trámite. */
   partesActivas: string[]
   bloquesActivos: string[]

@@ -1,5 +1,6 @@
 import { useMutation } from '@pinia/colada'
 import { asistenteApi } from '@/api/asistente'
+import { ApiError } from '@/api/http'
 import { tramitesApi } from '@/api/tramites'
 import { useChatStore } from '@/stores/chat'
 import type { RespuestaAsistente } from '@/types/asistente'
@@ -16,6 +17,9 @@ export interface EnvioMensaje {
 type Resultado =
   | { via: 'asistente'; respuesta: RespuestaAsistente }
   | { via: 'tramite'; respuesta: RespuestaTramite }
+
+/** Errores cuyo mensaje del back ya está pensado para el usuario: se muestran tal cual. */
+const ERRORES_PARA_USUARIO = new Set(['ia_saturada'])
 
 /**
  * Envía un mensaje al lugar que corresponde:
@@ -43,7 +47,8 @@ export function useEnviarMensaje() {
     },
 
     onError(error) {
-      chat.agregarError(`No pude procesar el mensaje: ${error.message}`)
+      const paraUsuario = error instanceof ApiError && error.codigo !== null && ERRORES_PARA_USUARIO.has(error.codigo)
+      chat.agregarError(paraUsuario ? error.message : `No pude procesar el mensaje: ${error.message}`)
     },
   })
 }

@@ -19,8 +19,11 @@ export interface Inicio {
   opciones: OpcionActo[]
 }
 
-/** Qué resolvió el back con el primer mensaje. */
-export type TipoRespuestaAsistente = 'tramite' | 'ayuda' | 'aclaracion' | 'no_disponible'
+/**
+ * Qué resolvió el back con el primer mensaje.
+ * historial: el usuario quiere ver/retomar trámites; el front abre el historial.
+ */
+export type TipoRespuestaAsistente = 'tramite' | 'ayuda' | 'aclaracion' | 'no_disponible' | 'historial'
 
 /** POST /api/asistente/mensajes */
 export interface RespuestaAsistente {
