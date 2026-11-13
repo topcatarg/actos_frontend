@@ -1,15 +1,17 @@
 <script setup lang="ts">
-// Columna derecha: los datos del trámite, por parte (paso), para validarlos.
-// Por ahora es de solo lectura: las correcciones se hacen desde el chat.
+// Columna derecha: los datos del trámite, por pestaña, para validarlos (solo lectura: se corrige desde el chat).
+// Qué se muestra depende del BLOQUE de la pestaña, no del acto: el mismo bloque (ej. vehículo) se ve
+// igual en un poder o en una compraventa.
 import { computed } from 'vue'
 import PanelPersonas from './datos/PanelPersonas.vue'
 import PanelFacultades from './datos/PanelFacultades.vue'
 import PanelCondiciones from './datos/PanelCondiciones.vue'
-import PanelInmueble from './datos/PanelInmueble.vue'
 import PanelRevision from './datos/PanelRevision.vue'
+import PanelBloque from './bloques/PanelBloque.vue'
+import { BLOQUES } from '@/bloques'
 import { useChatStore } from '@/stores/chat'
 import { usePartesTramite } from '@/composables/usePartesTramite'
-import { capitalizar } from '@/actos/poder'
+import { capitalizar } from '@/comun/campos'
 
 const chat = useChatStore()
 const { pasos, pasoActivo } = usePartesTramite()
@@ -17,12 +19,15 @@ const { pasos, pasoActivo } = usePartesTramite()
 const tramite = computed(() => chat.tramite)
 const pendientes = computed(() => pasoActivo.value?.pendientes ?? [])
 
+/** La primera pestaña de personas muestra también a las que todavía no tienen rol. */
+const esPrimeraPersona = computed(() => pasos.value.find((p) => p.bloque === 'persona')?.codigo === pasoActivo.value?.codigo)
+
 const ESTADO_TRAMITE = { en_curso: 'En curso', listo: 'Listo', confirmado: 'Confirmado' } as const
 
-// Badges compactos como el HTML original: un resumen de cada paso
+// Badges compactos como el HTML original: un resumen de cada pestaña
 const badges = computed(() =>
   pasos.value
-    .filter((p) => p.codigo !== 'revision')
+    .filter((p) => p.bloque !== 'revision')
     .map((p) => ({
       codigo: p.codigo,
       texto: p.completa ? `${p.nombre} ✓` : `${p.nombre} · ${p.pendientes.length} pend.`,
@@ -30,7 +35,8 @@ const badges = computed(() =>
     })),
 )
 
-const PANELES = ['otorgantes', 'apoderados', 'facultades', 'condiciones', 'inmueble', 'revision']
+const VISTAS = ['persona', 'facultades', 'condiciones', 'revision']
+const tieneVista = computed(() => !!pasoActivo.value && (VISTAS.includes(pasoActivo.value.bloque) || !!BLOQUES[pasoActivo.value.bloque]))
 </script>
 
 <template>
@@ -44,8 +50,8 @@ const PANELES = ['otorgantes', 'apoderados', 'facultades', 'condiciones', 'inmue
           </span>
         </div>
         <div v-if="tramite" class="datos-chips">
-          <span v-if="tramite.poder.tipoPoder.valor" class="datos-chip datos-chip-neutro">
-            Poder {{ capitalizar(tramite.poder.tipoPoder.valor) }}
+          <span v-if="tramite.datos.tipoPoder?.valor" class="datos-chip datos-chip-neutro">
+            {{ capitalizar(tramite.datos.tipoPoder.valor) }}
           </span>
           <span
             v-for="b in badges"
@@ -66,8 +72,8 @@ const PANELES = ['otorgantes', 'apoderados', 'facultades', 'condiciones', 'inmue
       </div>
 
       <template v-else-if="pasoActivo">
-        <!-- Lo que hay que resolver en este paso -->
-        <div v-if="pendientes.length && pasoActivo.codigo !== 'revision'" class="datos-pendientes">
+        <!-- Lo que hay que resolver en esta pestaña -->
+        <div v-if="pendientes.length && pasoActivo.bloque !== 'revision'" class="datos-pendientes">
           <div class="datos-pendientes-titulo">Para validar en este paso</div>
           <ul>
             <li v-for="(p, i) in pendientes" :key="i">
@@ -79,20 +85,33 @@ const PANELES = ['otorgantes', 'apoderados', 'facultades', 'condiciones', 'inmue
           </ul>
         </div>
 
-        <PanelPersonas v-if="pasoActivo.codigo === 'otorgantes'" rol="otorgante" :poder="tramite.poder" :pendientes="pendientes" />
-        <PanelPersonas v-else-if="pasoActivo.codigo === 'apoderados'" rol="apoderado" :poder="tramite.poder" :pendientes="pendientes" />
-        <PanelFacultades v-else-if="pasoActivo.codigo === 'facultades'" :poder="tramite.poder" :pendientes="pendientes" />
-        <PanelCondiciones v-else-if="pasoActivo.codigo === 'condiciones'" :poder="tramite.poder" :pendientes="pendientes" />
-        <PanelInmueble v-else-if="pasoActivo.codigo === 'inmueble'" :poder="tramite.poder" :pendientes="pendientes" />
+        <PanelPersonas
+          v-if="pasoActivo.bloque === 'persona'"
+          :datos="tramite.datos"
+          :rol="pasoActivo.rol"
+          :incluir-sin-rol="esPrimeraPersona"
+          :pendientes="pendientes"
+        />
+        <PanelFacultades v-else-if="pasoActivo.bloque === 'facultades'" :datos="tramite.datos" :pendientes="pendientes" />
+        <PanelCondiciones v-else-if="pasoActivo.bloque === 'condiciones'" :datos="tramite.datos" :pendientes="pendientes" />
         <PanelRevision
-          v-else-if="pasoActivo.codigo === 'revision'"
-          :poder="tramite.poder"
+          v-else-if="pasoActivo.bloque === 'revision'"
+          :datos="tramite.datos"
           :estado="tramite.estado"
           :pendientes="pendientes"
           :pasos="pasos"
         />
-        <div v-if="!PANELES.includes(pasoActivo.codigo)" class="seccion expanded">
-          <p class="datos-vacio">Todavía no hay una vista para «{{ pasoActivo.nombre }}».</p>
+        <!-- Bloques de datos: su componente propio, o el genérico -->
+        <component
+          :is="BLOQUES[pasoActivo.bloque]!.componente ?? PanelBloque"
+          v-else-if="BLOQUES[pasoActivo.bloque]"
+          :key="pasoActivo.codigo"
+          :def="BLOQUES[pasoActivo.bloque]!"
+          :datos="tramite.datos"
+          :pendientes="pendientes"
+        />
+        <div v-if="!tieneVista" class="seccion expanded">
+          <p class="datos-vacio">Todavía no hay una vista para el bloque «{{ pasoActivo.bloque }}».</p>
         </div>
       </template>
     </div>
@@ -103,7 +122,7 @@ const PANELES = ['otorgantes', 'apoderados', 'facultades', 'condiciones', 'inmue
         Guardar borrador
       </button>
       <button class="btn btn-primary" :disabled="!tramite?.estado.listoParaGenerar" title="Próximamente">
-        Generar poder
+        Generar documento
       </button>
     </div>
   </div>

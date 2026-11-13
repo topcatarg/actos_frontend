@@ -2,10 +2,10 @@
 import { computed } from 'vue'
 import SeccionDatos from './SeccionDatos.vue'
 import { useClausulas } from '@/queries/catalogo'
-import { capitalizar } from '@/actos/poder'
+import { humanizar } from '@/comun/campos'
 import type { Origen, Pendiente, Poder } from '@/types/poder'
 
-const props = defineProps<{ poder: Poder; pendientes: Pendiente[] }>()
+const props = defineProps<{ datos: Poder; pendientes: Pendiente[] }>()
 
 const clausulas = useClausulas()
 
@@ -14,11 +14,11 @@ const ORIGEN_TEXTO: Record<Origen, string> = {
   confirmado: 'Confirmado', base: 'De la base', default: 'Por defecto',
 }
 
-const seleccionadas = computed(() => new Map(props.poder.facultades.filter((f) => f.valor).map((f) => [f.valor!, f])))
+const seleccionadas = computed(() => new Map(props.datos.facultades.filter((f) => f.valor).map((f) => [f.valor!, f])))
 
 /** Las del catálogo que aplican al tipo de poder (y las elegidas aunque no apliquen), agrupadas por categoría. */
 const grupos = computed(() => {
-  const tipo = props.poder.tipoPoder.valor
+  const tipo = props.datos.tipoPoder.valor
   const facultades = (clausulas.data.value ?? []).filter(
     (c) => c.tipo === 'facultad' && (!tipo || c.aplicableA.includes(tipo) || seleccionadas.value.has(c.codigo)),
   )
@@ -43,7 +43,7 @@ const avisos = computed(() => props.pendientes.filter((p) => p.campo === 'facult
     <p v-else-if="!grupos.length" class="datos-vacio">Todavía no hay facultades.</p>
 
     <div v-for="[categoria, facultades] in grupos" :key="categoria" class="datos-categoria">
-      <div class="field-label datos-categoria-titulo">{{ capitalizar(categoria) }}</div>
+      <div class="field-label datos-categoria-titulo">{{ humanizar(categoria) }}</div>
       <div
         v-for="f in facultades"
         :key="f.codigo"

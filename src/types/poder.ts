@@ -1,15 +1,8 @@
-// Forma del poder y de su estado tal como los devuelve el back (Poderes/PoderExtraccion.cs y MotorFaltantes.cs).
+// Datos propios del poder (espejo de actos_backend/Poderes/PoderExtraccion.cs).
+// Lo común a cualquier acto (Dato, Pendiente, bloques) está en types/comun.ts.
+import type { Dato, DatosActo, EstadoDatos } from './comun'
 
-/** De dónde salió un dato. */
-export type Origen = 'texto' | 'inferido' | 'respuesta' | 'confirmado' | 'base' | 'default'
-
-export interface Dato {
-  valor: string | null
-  /** Pedazo literal del texto de donde salió. */
-  fragmento: string | null
-  inicio: number | null
-  origen: Origen | null
-}
+export type { Dato, Origen, Pendiente, TipoPendiente } from './comun'
 
 export interface CandidatoPersona {
   pfId: number
@@ -39,46 +32,14 @@ export interface PersonaPoder {
   candidatos: CandidatoPersona[]
 }
 
-export interface InmueblePoder {
-  direccion: Dato
-  localidad: Dato
-  provincia: Dato
-  matricula: Dato
-  nomenclatura: Dato
-  tipo: Dato
-}
-
-export interface Poder {
-  tipoPoder: Dato // general | especial
+export interface Poder extends DatosActo {
+  tipoPoder: Dato // general | especial | bancario | judicial | administrativo
   partes: PersonaPoder[]
   facultades: Dato[] // códigos de clausulas_template
   sustitucion: Dato
   vigencia: Dato
   fechaVigencia: Dato
   revocabilidad: Dato
-  inmueble: InmueblePoder
-  generacionConfirmada: boolean
-  /** Poder especial sobre un inmueble: hay que pedir sus datos (lo calcula el back con el catálogo). */
-  requiereInmueble: boolean
 }
 
-export type TipoPendiente = 'inconsistente' | 'confirmar' | 'falta'
-
-export interface Pendiente {
-  tipo: TipoPendiente
-  /** estructura | roles | partes[i] | facultades | inmueble | condiciones | generar */
-  grupo: string
-  /** Ruta del dato: partes[1].dni, sustitucion, inmueble.direccion, facultades... */
-  campo: string
-  etiqueta: string
-  detalle: string | null
-}
-
-export interface EstadoPoder {
-  pendientes: Pendiente[]
-  /** Lo que el asistente está preguntando ahora. */
-  siguiente: Pendiente[]
-  puedeGuardarBorrador: boolean
-  listoParaGenerar: boolean
-  generarDocumento: boolean
-}
+export type EstadoPoder = EstadoDatos

@@ -2,15 +2,24 @@
 import { computed } from 'vue'
 import CampoDato from './CampoDato.vue'
 import SeccionDatos from './SeccionDatos.vue'
-import { CAMPOS_PERSONA, pendienteDe, personasDeRol, tieneValor, type Rol } from '@/actos/poder'
+import { CAMPOS_PERSONA, personasDeRol, tieneValor } from '@/actos/poder'
+import { capitalizar } from '@/comun/campos'
+import { pendienteDe } from '@/tramite/pendientes'
 import type { Pendiente, PersonaPoder, Poder } from '@/types/poder'
 
-const props = defineProps<{ poder: Poder; rol: Rol; pendientes: Pendiente[] }>()
+const props = defineProps<{
+  datos: Poder
+  /** Rol que muestra la pestaña (otorgante, apoderado, vendedor...). */
+  rol: string | null
+  /** La primera pestaña de personas también muestra a las que todavía no tienen rol. */
+  incluirSinRol: boolean
+  pendientes: Pendiente[]
+}>()
 
-const titulo = computed(() => (props.rol === 'apoderado' ? 'Apoderado' : 'Otorgante'))
+const titulo = computed(() => capitalizar(props.rol ?? 'Persona'))
 
 const personas = computed(() =>
-  personasDeRol(props.poder, props.rol).map(({ persona, indice }) => {
+  personasDeRol(props.datos, props.rol, props.incluirSinRol).map(({ persona, indice }) => {
     const ruta = `partes[${indice}]`
     const conValor = CAMPOS_PERSONA.filter((c) => tieneValor(persona[c.clave]))
     const faltantes = CAMPOS_PERSONA.filter((c) => c.obligatorio && !tieneValor(persona[c.clave]))

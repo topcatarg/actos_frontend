@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { DefCampo } from '@/actos/poder'
-import type { Dato, Origen, Pendiente } from '@/types/poder'
+import type { DefCampo } from '@/comun/campos'
+import type { Dato, Origen, Pendiente } from '@/types/comun'
 
 const props = defineProps<{
   def: DefCampo
